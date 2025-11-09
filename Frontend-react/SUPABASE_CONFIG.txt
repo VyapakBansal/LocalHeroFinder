@@ -1,0 +1,9 @@
+Configure these in Supabase Dashboard:
+https://supabase.com/dashboard/project/nlhidtzfltbpkhkttzwb/auth/url-configuration
+
+Site URL: https://localherofinder.vercel.app
+
+Redirect URLs (add both):
+- http://localhost:5173/**
+- https://localherofinder.vercel.app/**
+
