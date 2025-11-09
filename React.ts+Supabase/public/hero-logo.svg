@@ -1,0 +1,13 @@
+<svg width="200" height="140" viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg">
+  <g>
+    <circle cx="100" cy="25" r="18" fill="#84cc16" stroke="#65a30d" stroke-width="2"/>
+    <path d="M 100 15 L 100 35 M 90 25 L 110 25" stroke="white" stroke-width="3" stroke-linecap="round"/>
+    <path d="M 100 43 L 88 75 L 100 85 L 112 75 Z" fill="#ef4444"/>
+    <path d="M 100 70 Q 92 65 88 70 Q 92 75 100 70" fill="#84cc16"/>
+    <path d="M 100 70 Q 108 65 112 70 Q 108 75 100 70" fill="#84cc16"/>
+    <path d="M 88 70 Q 92 65 100 70 Q 92 75 88 70" fill="#84cc16"/>
+    <path d="M 112 70 Q 108 65 100 70 Q 108 75 112 70" fill="#84cc16"/>
+  </g>
+  <text x="100" y="110" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#f97316" text-anchor="middle">HERO</text>
+  <text x="100" y="130" font-family="Arial, sans-serif" font-size="11" fill="#f97316" text-anchor="middle">Immediate Aid. Verified Responders</text>
+</svg>
