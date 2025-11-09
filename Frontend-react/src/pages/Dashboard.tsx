@@ -5,6 +5,8 @@ import { User } from "@supabase/supabase-js";
 
 
 import { Loader2 } from "lucide-react";
+import ResponderDashboard from "@/components/ResponderDashboard";
+import RequesterDashboard from "@/components/RequesterDashboard";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -69,10 +71,10 @@ const Dashboard = () => {
 
   // Show appropriate dashboard based on role
   if (userRole === "responder") {
-    return <h1>GO TO RESPONDER DB</h1>;
+    return <ResponderDashboard user={user} />;
   }
 
-  return <h1>GO TO USER DB</h1>;
+  return  <RequesterDashboard user={user} />;
 };
 
 export default Dashboard;
