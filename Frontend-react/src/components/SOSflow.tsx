@@ -1,25 +1,8 @@
-import { useState, useEffect } from "react";
-import {
-  ArrowLeft,
-  Phone,
-  MapPin,
-  Clock,
-  Loader2,
-  Shield,
-  Map,
-  Home,
-} from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Phone, MapPin, Clock, Loader2, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -29,66 +12,69 @@ interface SOSFlowProps {
 }
 
 const emergencyTypes = [
-  { id: "CPR/AED", title: "CPR/AED Needed", icon: "❤️", description: "Person unconscious or not breathing normally", priority: "critical" },
-  { id: "Choking", title: "Choking", icon: "🫁", description: "Person unable to breathe or speak", priority: "critical" },
-  { id: "Severe Bleeding", title: "Severe Bleeding", icon: "🩸", description: "Heavy blood loss or deep wound", priority: "critical" },
-  { id: "Road Accident", title: "Road Accident", icon: "🚗", description: "Vehicle collision with injuries", priority: "high" },
-  { id: "Anaphylaxis", title: "Anaphylaxis", icon: "💉", description: "Severe allergic reaction", priority: "critical" },
-  { id: "Elderly Fall", title: "Elderly Fall", icon: "👴", description: "Senior fell and may be injured", priority: "medium" },
-  { id: "Blood Donation", title: "Blood Donation", icon: "🩸", description: "Urgent blood needed", priority: "medium" },
-  { id: "Missing Person", title: "Missing Person", icon: "🔍", description: "Lost person needs help", priority: "medium" },
+  {
+    id: "CPR/AED",
+    title: "CPR/AED Needed",
+    icon: "❤️",
+    description: "Person unconscious or not breathing normally",
+    priority: "critical",
+  },
+  {
+    id: "Choking",
+    title: "Choking",
+    icon: "🫁",
+    description: "Person unable to breathe or speak",
+    priority: "critical",
+  },
+  {
+    id: "Severe Bleeding",
+    title: "Severe Bleeding",
+    icon: "🩸",
+    description: "Heavy blood loss or deep wound",
+    priority: "critical",
+  },
+  {
+    id: "Road Accident",
+    title: "Road Accident",
+    icon: "🚗",
+    description: "Vehicle collision with injuries",
+    priority: "high",
+  },
+  {
+    id: "Anaphylaxis",
+    title: "Anaphylaxis",
+    icon: "💉",
+    description: "Severe allergic reaction",
+    priority: "critical",
+  },
+  {
+    id: "Elderly Fall",
+    title: "Elderly Fall",
+    icon: "👴",
+    description: "Senior fell and may be injured",
+    priority: "medium",
+  },
+  {
+    id: "Blood Donation",
+    title: "Blood Donation",
+    icon: "🩸",
+    description: "Urgent blood needed",
+    priority: "medium",
+  },
+  {
+    id: "Missing Person",
+    title: "Missing Person",
+    icon: "🔍",
+    description: "Lost person needs help",
+    priority: "medium",
+  },
 ];
 
 const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
   const [step, setStep] = useState(1);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [additionalInfo, setAdditionalInfo] = useState("");
-  const [manualAddress, setManualAddress] = useState("");
   const [loading, setLoading] = useState(false);
-  const [hasLocationPermission, setHasLocationPermission] = useState<boolean | null>(null);
-  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
-  const [useManualAddress, setUseManualAddress] = useState(false);
-
-  //  Request or detect location permission
-  useEffect(() => {
-    if (!("geolocation" in navigator)) {
-      toast.error("Your browser does not support location access");
-      return;
-    }
-
-    const checkPermission = async () => {
-      try {
-        const permission = await navigator.permissions?.query({ name: "geolocation" as PermissionName });
-        if (!permission) return;
-
-        if (permission.state === "granted") {
-          setHasLocationPermission(true);
-        } else if (permission.state === "prompt") {
-          navigator.geolocation.getCurrentPosition(
-            () => setHasLocationPermission(true),
-            () => setHasLocationPermission(false)
-          );
-        } else if (permission.state === "denied") {
-          setHasLocationPermission(false);
-          setShowPermissionDialog(true);
-        }
-
-        permission.onchange = () => {
-          if (permission.state === "granted") {
-            setHasLocationPermission(true);
-            setShowPermissionDialog(false);
-          } else if (permission.state === "denied") {
-            setHasLocationPermission(false);
-            setShowPermissionDialog(true);
-          }
-        };
-      } catch (err) {
-        console.warn("Permissions API not fully supported:", err);
-      }
-    };
-
-    checkPermission();
-  }, []);
 
   const handleTypeSelect = (typeId: string) => {
     setSelectedType(typeId);
@@ -97,36 +83,8 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
 
   const handleConfirm = async () => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      toast.error("Please sign in to request help");
-      setLoading(false);
-      return;
-    }
 
     try {
-      
-      if (useManualAddress && manualAddress.trim() !== "") {
-        const { error } = await supabase.from("incidents").insert({
-          requester_id: user.id,
-          incident_type: selectedType,
-          latitude: null,
-          longitude: null,
-          address_text: manualAddress,
-          additional_info: additionalInfo || null,
-          status: "awaiting_responder",
-        });
-
-        if (error) throw error;
-
-        setStep(3);
-        setTimeout(() => {
-          toast.success("Emergency request sent to nearby responders!");
-          onComplete();
-        }, 2000);
-        return;
-      }
-
       if (!("geolocation" in navigator)) {
         toast.error("Location not supported by your browser");
         setLoading(false);
@@ -135,17 +93,29 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
 
       navigator.geolocation.getCurrentPosition(
         async (position) => {
+          const { data: { user } } = await supabase.auth.getUser();
+
+          if (!user) {
+            toast.error("Please sign in to request help");
+            setLoading(false);
+            return;
+          }
+
           const { error } = await supabase.from("incidents").insert({
             requester_id: user.id,
             incident_type: selectedType,
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
-            address_text: null,
             additional_info: additionalInfo || null,
             status: "awaiting_responder",
           });
 
-          if (error) throw error;
+          if (error) {
+            toast.error("Failed to send emergency request");
+            console.error("Error creating incident:", error);
+            setLoading(false);
+            return;
+          }
 
           setStep(3);
           setTimeout(() => {
@@ -154,15 +124,14 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
           }, 2000);
         },
         (error) => {
+          toast.error("Please enable location access");
           console.error("Location error:", error);
-          toast.error("Couldn't get your location");
-          setShowPermissionDialog(true);
           setLoading(false);
         }
       );
     } catch (error) {
-      console.error("Error creating incident:", error);
-      toast.error("Something went wrong while sending request");
+      toast.error("Something went wrong");
+      console.error("Error:", error);
       setLoading(false);
     }
   };
@@ -171,12 +140,12 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
 
   return (
     <div className="min-h-screen bg-background">
- 
+      {/* Emergency Call Button */}
       <div className="fixed top-4 right-4 z-50">
         <Button
           size="lg"
           className="bg-destructive hover:bg-destructive/90 text-destructive-foreground shadow-2xl font-bold px-8 py-6 text-lg rounded-2xl border-4 border-destructive/20"
-          onClick={() => (window.location.href = "tel:911")}
+          onClick={() => window.location.href = "tel:911"}
         >
           <Phone className="w-6 h-6 mr-2" />
           Call 911
@@ -196,7 +165,6 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
             </Button>
           )}
 
-    
           {step === 1 && (
             <div>
               <div className="text-center mb-8">
@@ -236,9 +204,14 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
                   </Card>
                 ))}
               </div>
+
+              <div className="mt-8 bg-accent/10 border border-accent/20 rounded-2xl p-6">
+                <p className="text-center text-foreground">
+                  <strong>Remember:</strong> For life-threatening emergencies, always call 911 first. Local Hero Finder provides additional support.
+                </p>
+              </div>
             </div>
           )}
-
 
           {step === 2 && selectedEmergency && (
             <div className="max-w-2xl mx-auto">
@@ -259,32 +232,25 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
                       <MapPin className="w-5 h-5 text-primary flex-shrink-0 mt-1" />
                       <div>
                         <h4 className="font-semibold text-foreground mb-1">
-                          Location
+                          Your Location
                         </h4>
                         <p className="text-sm text-muted-foreground">
-                          {useManualAddress
-                            ? "Using your entered address"
-                            : hasLocationPermission === false
-                            ? "Location access not enabled"
-                            : "Will use GPS automatically"}
+                          Will be shared with nearby responders
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Clock className="w-5 h-5 text-secondary flex-shrink-0 mt-1" />
+                      <div>
+                        <h4 className="font-semibold text-foreground mb-1">
+                          Estimated Response
+                        </h4>
+                        <p className="text-sm text-muted-foreground">
+                          Notifying verified responders nearby
                         </p>
                       </div>
                     </div>
                   </div>
-
-                  {useManualAddress && (
-                    <div>
-                      <label className="block text-sm font-semibold text-foreground mb-2">
-                        Enter Your Address or Landmark
-                      </label>
-                      <Input
-                        value={manualAddress}
-                        onChange={(e) => setManualAddress(e.target.value)}
-                        placeholder="e.g. 123 Main St, Springfield"
-                        className="rounded-xl"
-                      />
-                    </div>
-                  )}
 
                   <div>
                     <label className="block text-sm font-semibold text-foreground mb-2">
@@ -293,9 +259,22 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
                     <Textarea
                       value={additionalInfo}
                       onChange={(e) => setAdditionalInfo(e.target.value)}
-                      placeholder="Any extra details that might help responders..."
+                      placeholder="Any additional details that might help responders..."
                       className="rounded-xl min-h-24"
                     />
+                  </div>
+
+                  <div className="bg-primary/10 border border-primary/20 rounded-xl p-4">
+                    <h4 className="font-semibold text-foreground mb-2 flex items-center gap-2">
+                      <Shield className="w-4 h-4 text-primary" />
+                      What happens next?
+                    </h4>
+                    <ul className="text-sm text-muted-foreground space-y-1">
+                      <li>• Nearby verified responders receive your alert</li>
+                      <li>• You'll see who's on their way in real-time</li>
+                      <li>• You can communicate with your responder</li>
+                      <li>• Professional emergency services are also notified</li>
+                    </ul>
                   </div>
 
                   <div className="flex gap-4">
@@ -314,7 +293,8 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
                     >
                       {loading ? (
                         <>
-                          <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Sending...
+                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                          Sending...
                         </>
                       ) : (
                         "Send Alert"
@@ -338,50 +318,17 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
                 <p className="text-lg text-muted-foreground mb-8">
                   Nearby responders have been notified. Help is on the way.
                 </p>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-center gap-2 text-success font-semibold">
+                    <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
+                    Searching for nearby responders...
+                  </div>
+                </div>
               </Card>
             </div>
           )}
         </div>
       </div>
-
- 
-      <Dialog open={showPermissionDialog} onOpenChange={setShowPermissionDialog}>
-        <DialogContent className="max-w-sm rounded-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Map className="w-5 h-5 text-primary" />
-              Enable Location Access
-            </DialogTitle>
-            <DialogDescription>
-              We couldn’t get your GPS location. You can enable it in settings or
-              enter your address manually below.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="mt-4 space-y-3">
-            <Button
-              onClick={() => {
-                setUseManualAddress(true);
-                setShowPermissionDialog(false);
-              }}
-              className="w-full rounded-xl"
-            >
-              <Home className="w-4 h-4 mr-2" />
-              Enter Address Instead
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowPermissionDialog(false);
-                toast.info("You can re-enable location in your browser settings");
-              }}
-              className="w-full rounded-xl"
-            >
-              Try Again Later
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
