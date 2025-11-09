@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { ArrowLeft, Phone, MapPin, Clock, Loader2, Shield } from "lucide-react";
+import { ArrowLeft, Phone, MapPin, Clock, Loader2, Shield, Map } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -28,8 +29,9 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
   const [additionalInfo, setAdditionalInfo] = useState("");
   const [loading, setLoading] = useState(false);
   const [hasLocationPermission, setHasLocationPermission] = useState<boolean | null>(null);
+  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
 
-  // 🌍 Auto promptinmg for location access on mount
+  // Prompt for location or show modal if blocked
   useEffect(() => {
     if (!("geolocation" in navigator)) {
       toast.error("Your browser does not support location access");
@@ -44,18 +46,23 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
         if (permission.state === "granted") {
           setHasLocationPermission(true);
         } else if (permission.state === "prompt") {
-          
           navigator.geolocation.getCurrentPosition(
             () => setHasLocationPermission(true),
             () => setHasLocationPermission(false)
           );
         } else if (permission.state === "denied") {
           setHasLocationPermission(false);
-          toast.error("Location access is blocked. Enable it in your browser settings.");
+          setShowPermissionDialog(true);
         }
 
         permission.onchange = () => {
-          setHasLocationPermission(permission.state === "granted");
+          if (permission.state === "granted") {
+            setHasLocationPermission(true);
+            setShowPermissionDialog(false);
+          } else if (permission.state === "denied") {
+            setHasLocationPermission(false);
+            setShowPermissionDialog(true);
+          }
         };
       } catch (err) {
         console.warn("Permissions API not fully supported:", err);
@@ -64,6 +71,19 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
 
     checkPermission();
   }, []);
+
+  //  Attempt to open settings for mobile
+  const handleOpenSettings = () => {
+    const ua = navigator.userAgent.toLowerCase();
+    if (ua.includes("android")) {
+      toast.info("Opening app settings...");
+      window.open("chrome://settings/content/location", "_blank");
+    } else if (ua.includes("iphone") || ua.includes("ipad")) {
+      toast.info("Open Settings → Safari → Location → Allow for this website");
+    } else {
+      toast.info("Check your browser's site settings to enable location.");
+    }
+  };
 
   const handleTypeSelect = (typeId: string) => {
     setSelectedType(typeId);
@@ -115,6 +135,7 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
         (error) => {
           console.error("Location error:", error);
           toast.error("Please enable location access to send your alert");
+          setShowPermissionDialog(true);
           setLoading(false);
         }
       );
@@ -129,7 +150,7 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
 
   return (
     <div className="min-h-screen bg-background">
-
+     
       <div className="fixed top-4 right-4 z-50">
         <Button
           size="lg"
@@ -144,17 +165,13 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
       <div className="py-12 px-4">
         <div className="max-w-4xl mx-auto">
           {step < 3 && (
-            <Button
-              variant="ghost"
-              onClick={onBack}
-              className="mb-8 hover:bg-muted rounded-xl"
-            >
+            <Button variant="ghost" onClick={onBack} className="mb-8 hover:bg-muted rounded-xl">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back
             </Button>
           )}
 
-
+       
           {step === 1 && (
             <div>
               <div className="text-center mb-8">
@@ -179,8 +196,12 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
                   >
                     <div className="text-center">
                       <div className="text-5xl mb-3">{emergency.icon}</div>
-                      <h3 className="font-bold text-foreground text-lg mb-2">{emergency.title}</h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed">{emergency.description}</p>
+                      <h3 className="font-bold text-foreground text-lg mb-2">
+                        {emergency.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {emergency.description}
+                      </p>
                       {emergency.priority === "critical" && (
                         <div className="mt-3 inline-flex items-center text-xs font-semibold text-destructive bg-destructive/10 px-3 py-1 rounded-full">
                           Critical
@@ -256,23 +277,13 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
                   </div>
 
                   <div className="flex gap-4">
-                    <Button
-                      variant="outline"
-                      onClick={() => setStep(1)}
-                      disabled={loading}
-                      className="flex-1 rounded-xl py-6 text-lg font-semibold"
-                    >
+                    <Button variant="outline" onClick={() => setStep(1)} disabled={loading} className="flex-1 rounded-xl py-6 text-lg font-semibold">
                       Change Type
                     </Button>
-                    <Button
-                      onClick={handleConfirm}
-                      disabled={loading}
-                      className="flex-1 bg-accent hover:bg-accent/90 rounded-xl py-6 text-lg font-bold"
-                    >
+                    <Button onClick={handleConfirm} disabled={loading} className="flex-1 bg-accent hover:bg-accent/90 rounded-xl py-6 text-lg font-bold">
                       {loading ? (
                         <>
-                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                          Sending...
+                          <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Sending...
                         </>
                       ) : (
                         "Send Alert"
@@ -284,7 +295,7 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
             </div>
           )}
 
- 
+          
           {step === 3 && (
             <div className="max-w-2xl mx-auto">
               <Card className="p-8 rounded-2xl shadow-xl text-center">
@@ -306,6 +317,30 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
           )}
         </div>
       </div>
+
+   
+      <Dialog open={showPermissionDialog} onOpenChange={setShowPermissionDialog}>
+        <DialogContent className="max-w-sm rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Map className="w-5 h-5 text-primary" />
+              Enable Location Access
+            </DialogTitle>
+            <DialogDescription>
+              We use your location to alert nearby responders. Please enable location access in your browser or device settings.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-4 flex flex-col gap-2">
+            <Button onClick={handleOpenSettings} className="w-full rounded-xl">
+              Open Location Settings
+            </Button>
+            <Button variant="outline" onClick={() => setShowPermissionDialog(false)} className="w-full rounded-xl">
+              Maybe Later
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
