@@ -2,8 +2,15 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+// Use new project URL, fallback to env variable
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://nlhidtzfltbpkhkttzwb.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+// Debug: Log Supabase URL to console
+if (typeof window !== 'undefined') {
+  console.log('🔍 Supabase URL:', SUPABASE_URL);
+  console.log('🔍 Supabase Project ID:', SUPABASE_URL?.replace('https://', '').replace('.supabase.co', ''));
+}
 
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
