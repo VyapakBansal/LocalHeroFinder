@@ -64,6 +64,13 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4">
+      <Button 
+      variant="outline" 
+      className="absolute top-4 left-4"
+      onClick={() => navigate("/")}
+    >
+      🏠 Home
+    </Button>
       <Card className="w-full max-w-md p-8">
         <div className="flex items-center justify-center mb-6">
           <Logo />

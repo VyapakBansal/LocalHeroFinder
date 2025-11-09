@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { LogOut, Phone, Shield, UserPlus } from "lucide-react";
 import { toast } from "sonner";
+import SOSFlow from "./SOSflow";
 
 import Logo from "./Logo";
 
@@ -31,7 +32,14 @@ const RequesterDashboard = ({ user }: RequesterDashboardProps) => {
 
   if (showSOS) {
     return (
-      <h1>SOS Flow thing</h1>
+      <SOSFlow
+        onBack={() => setShowSOS(false)}
+        onComplete={() => {
+          setShowSOS(false);
+          setShowMap(true);
+          toast.success("Help request sent! Viewing map...");
+        }}
+      />
     );
   }
 
