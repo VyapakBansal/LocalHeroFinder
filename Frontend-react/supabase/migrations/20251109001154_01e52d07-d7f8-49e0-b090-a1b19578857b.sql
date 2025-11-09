@@ -1,7 +1,5 @@
--- Create role enum
 CREATE TYPE public.app_role AS ENUM ('responder', 'requester', 'admin');
 
--- Create profiles table
 CREATE TABLE public.profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   full_name TEXT NOT NULL,
@@ -11,7 +9,6 @@ CREATE TABLE public.profiles (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Create user_roles table
 CREATE TABLE public.user_roles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
@@ -19,7 +16,6 @@ CREATE TABLE public.user_roles (
   UNIQUE (user_id, role)
 );
 
--- Create responder_profiles table for responder-specific data
 CREATE TABLE public.responder_profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL UNIQUE,
@@ -36,7 +32,6 @@ CREATE TABLE public.responder_profiles (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Create incidents table
 CREATE TABLE public.incidents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   requester_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
@@ -55,13 +50,11 @@ CREATE TABLE public.incidents (
   feedback TEXT
 );
 
--- Enable RLS
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.responder_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.incidents ENABLE ROW LEVEL SECURITY;
 
--- Create security definer function for role checking
 CREATE OR REPLACE FUNCTION public.has_role(_user_id UUID, _role app_role)
 RETURNS BOOLEAN
 LANGUAGE SQL
@@ -77,7 +70,6 @@ AS $$
   )
 $$;
 
--- RLS Policies for profiles
 CREATE POLICY "Users can view their own profile"
   ON public.profiles FOR SELECT
   USING (auth.uid() = id);
@@ -90,7 +82,6 @@ CREATE POLICY "Users can insert their own profile"
   ON public.profiles FOR INSERT
   WITH CHECK (auth.uid() = id);
 
--- RLS Policies for user_roles
 CREATE POLICY "Users can view their own roles"
   ON public.user_roles FOR SELECT
   USING (auth.uid() = user_id);
@@ -99,7 +90,6 @@ CREATE POLICY "Admins can manage all roles"
   ON public.user_roles FOR ALL
   USING (public.has_role(auth.uid(), 'admin'));
 
--- RLS Policies for responder_profiles
 CREATE POLICY "Responders can view their own profile"
   ON public.responder_profiles FOR SELECT
   USING (auth.uid() = user_id);
@@ -120,7 +110,6 @@ CREATE POLICY "Requesters can view available responders"
     availability_status = true
   );
 
--- creating all tha RLS Policiy stuff for incidents
 CREATE POLICY "Requesters can view their own incidents"
   ON public.incidents FOR SELECT
   USING (auth.uid() = requester_id);
@@ -154,7 +143,6 @@ CREATE POLICY "Requesters can update their own incidents"
   ON public.incidents FOR UPDATE
   USING (auth.uid() = requester_id);
 
--- Create trigger function for updated_at
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -163,7 +151,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create triggers
 CREATE TRIGGER update_profiles_updated_at
   BEFORE UPDATE ON public.profiles
   FOR EACH ROW
@@ -174,7 +161,6 @@ CREATE TRIGGER update_responder_profiles_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
--- Create function to handle new user signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -182,14 +168,12 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  -- Insert into profiles
   INSERT INTO public.profiles (id, full_name)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'full_name', 'User')
   );
   
-  -- Insert default role (requester)
   INSERT INTO public.user_roles (user_id, role)
   VALUES (NEW.id, 'requester');
   
@@ -197,11 +181,9 @@ BEGIN
 END;
 $$;
 
--- Create trigger for new user
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_new_user();
 
--- Enable realtime for incidents
 ALTER PUBLICATION supabase_realtime ADD TABLE public.incidents;

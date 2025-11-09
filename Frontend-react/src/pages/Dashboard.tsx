@@ -69,7 +69,6 @@ const Dashboard = () => {
     return null;
   }
 
-  // Show appropriate dashboard based on role
   if (userRole === "responder") {
     return <ResponderDashboard user={user} />;
   }

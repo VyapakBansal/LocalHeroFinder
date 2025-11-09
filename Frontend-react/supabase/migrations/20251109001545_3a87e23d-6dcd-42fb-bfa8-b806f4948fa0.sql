@@ -1,4 +1,3 @@
--- Fix security warning: set search_path for update_updated_at_column function
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 RETURNS TRIGGER
 LANGUAGE plpgsql

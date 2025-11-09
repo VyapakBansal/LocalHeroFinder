@@ -140,7 +140,6 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Emergency Call Button */}
       <div className="fixed top-4 right-4 z-50">
         <Button
           size="lg"

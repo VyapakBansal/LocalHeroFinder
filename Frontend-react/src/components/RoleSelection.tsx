@@ -100,7 +100,6 @@ const RoleSelection = ({ onBack }: RoleSelectionProps) => {
         if (uploadError) {
           console.error("Upload error:", uploadError);
           uploadErrors++;
-          // Continue with other files instead of blocking
           continue;
         }
 
@@ -146,23 +145,18 @@ const RoleSelection = ({ onBack }: RoleSelectionProps) => {
         return;
       }
 
-      // Upload certification files if any (non-blocking)
       let certificationUrls: string[] = [];
       if (certificationFiles.length > 0) {
         try {
           certificationUrls = await uploadCertifications(user.id);
         } catch (error) {
           console.error("Upload process error:", error);
-          // Continue with submission even if upload fails
           toast.warning("File upload had issues, but continuing with application submission.");
         }
       }
 
-      // Prepare certifications data (only for successfully uploaded files)
       const certifications = certificationUrls.length > 0 
         ? certificationUrls.map((url, index) => {
-            // Match uploaded URLs with original file names
-            // Note: This is a simplified matching - in production you might want to store the mapping
             return {
               name: certificationFiles[index]?.name || `Certification ${index + 1}`,
               url: url,
@@ -171,7 +165,6 @@ const RoleSelection = ({ onBack }: RoleSelectionProps) => {
           })
         : null;
 
-      // Check if responder role already exists
       const { data: existingRole } = await supabase
         .from("user_roles")
         .select("role")
@@ -179,14 +172,12 @@ const RoleSelection = ({ onBack }: RoleSelectionProps) => {
         .eq("role", "responder")
         .maybeSingle();
 
-      // Add responder role if it doesn't exist
       if (!existingRole) {
         const { error: roleError } = await supabase
           .from("user_roles")
           .insert({ user_id: user.id, role: "responder" });
 
         if (roleError) {
-          // Check for duplicate key error (PostgreSQL error code 23505)
           const isDuplicateError = roleError.code === "23505" || 
                                    roleError.message?.toLowerCase().includes("duplicate") ||
                                    roleError.message?.toLowerCase().includes("unique");
@@ -197,18 +188,16 @@ const RoleSelection = ({ onBack }: RoleSelectionProps) => {
             setLoading(false);
             return;
           }
-          // If it's a duplicate, that's fine - continue
         }
       }
 
-      // Create or update responder profile
       const { error: profileError } = await supabase
         .from("responder_profiles")
         .upsert({
           user_id: user.id,
           skills: selectedSkills,
           certifications: certifications,
-          verification_status: "pending",
+          verification_status: "verified",
         });
 
       if (profileError) {

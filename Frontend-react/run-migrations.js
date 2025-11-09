@@ -1,13 +1,3 @@
-/**
- * Migration script to run all Supabase migrations
- * 
- * Usage:
- *   node run-migrations.js
- * 
- * Requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables
- * Get these from: https://supabase.com/dashboard/project/nlhidtzfltbpkhkttzwb/settings/api
- */
-
 import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'fs';
 import { join, dirname } from 'path';
@@ -51,7 +41,6 @@ async function runMigrations() {
       console.log(`📄 Running: ${migrationFile}`);
       const sql = readFileSync(migrationPath, 'utf-8');
       
-      // Split by semicolons and execute each statement
       const statements = sql
         .split(';')
         .map(s => s.trim())
@@ -61,9 +50,7 @@ async function runMigrations() {
         if (statement.trim()) {
           const { error } = await supabase.rpc('exec_sql', { sql_query: statement });
           
-          // If RPC doesn't work, try direct query (this requires service role)
           if (error) {
-            // Use the REST API directly for DDL statements
             const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/exec_sql`, {
               method: 'POST',
               headers: {
@@ -75,7 +62,6 @@ async function runMigrations() {
             });
 
             if (!response.ok && !response.status === 404) {
-              // Try executing via PostgREST or direct connection
               console.warn(`   ⚠️  Note: Some statements may need to be run manually in SQL Editor`);
             }
           }
