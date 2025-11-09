@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { LogOut, MapPin, Shield } from "lucide-react";
 import { toast } from "sonner";
 import Logo from "./Logo";
+import LiveIncidentMap from "./LiveIncidentMap";
 
 interface ResponderDashboardProps {
   user: User;
@@ -156,10 +157,20 @@ const ResponderDashboard = ({ user }: ResponderDashboardProps) => {
 
       <div className="h-[calc(100vh-140px)]">
         {profile?.verification_status === "verified" ? (
-          <h1>PUTting MAP here</h1>
+          <LiveIncidentMap
+            userId={user.id}
+            isAvailable={availability}
+            userLatitude={profile.latitude}
+            userLongitude={profile.longitude}
+          />
         ) : (
           <div className="h-full relative">
-            <h1>Pytting mapp </h1>
+            <LiveIncidentMap
+              userId={user.id}
+              isAvailable={false}
+              userLatitude={profile?.latitude || null}
+              userLongitude={profile?.longitude || null}
+            />
             <div className="absolute inset-0 flex items-center justify-center bg-background/80">
               <Card className="p-8 max-w-md text-center">
                 <h2 className="text-xl font-bold mb-2 text-foreground">Verification Pending</h2>

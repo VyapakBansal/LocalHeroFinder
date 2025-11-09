@@ -124,7 +124,7 @@ const RoleSelection = ({ onBack }: RoleSelectionProps) => {
     return uploadedUrls;
   };
 
-  const handleResponderSubmit = async () => {
+    const handleResponderSubmit = async () => {
     if (!agreedToTerms) {
       toast.error("Please agree to the terms and conditions");
       return;
