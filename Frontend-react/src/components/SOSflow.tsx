@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowLeft, Phone, MapPin, Clock, Loader2, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,62 +12,14 @@ interface SOSFlowProps {
 }
 
 const emergencyTypes = [
-  {
-    id: "CPR/AED",
-    title: "CPR/AED Needed",
-    icon: "❤️",
-    description: "Person unconscious or not breathing normally",
-    priority: "critical",
-  },
-  {
-    id: "Choking",
-    title: "Choking",
-    icon: "🫁",
-    description: "Person unable to breathe or speak",
-    priority: "critical",
-  },
-  {
-    id: "Severe Bleeding",
-    title: "Severe Bleeding",
-    icon: "🩸",
-    description: "Heavy blood loss or deep wound",
-    priority: "critical",
-  },
-  {
-    id: "Road Accident",
-    title: "Road Accident",
-    icon: "🚗",
-    description: "Vehicle collision with injuries",
-    priority: "high",
-  },
-  {
-    id: "Anaphylaxis",
-    title: "Anaphylaxis",
-    icon: "💉",
-    description: "Severe allergic reaction",
-    priority: "critical",
-  },
-  {
-    id: "Elderly Fall",
-    title: "Elderly Fall",
-    icon: "👴",
-    description: "Senior fell and may be injured",
-    priority: "medium",
-  },
-  {
-    id: "Blood Donation",
-    title: "Blood Donation",
-    icon: "🩸",
-    description: "Urgent blood needed",
-    priority: "medium",
-  },
-  {
-    id: "Missing Person",
-    title: "Missing Person",
-    icon: "🔍",
-    description: "Lost person needs help",
-    priority: "medium",
-  },
+  { id: "CPR/AED", title: "CPR/AED Needed", icon: "❤️", description: "Person unconscious or not breathing normally", priority: "critical" },
+  { id: "Choking", title: "Choking", icon: "🫁", description: "Person unable to breathe or speak", priority: "critical" },
+  { id: "Severe Bleeding", title: "Severe Bleeding", icon: "🩸", description: "Heavy blood loss or deep wound", priority: "critical" },
+  { id: "Road Accident", title: "Road Accident", icon: "🚗", description: "Vehicle collision with injuries", priority: "high" },
+  { id: "Anaphylaxis", title: "Anaphylaxis", icon: "💉", description: "Severe allergic reaction", priority: "critical" },
+  { id: "Elderly Fall", title: "Elderly Fall", icon: "👴", description: "Senior fell and may be injured", priority: "medium" },
+  { id: "Blood Donation", title: "Blood Donation", icon: "🩸", description: "Urgent blood needed", priority: "medium" },
+  { id: "Missing Person", title: "Missing Person", icon: "🔍", description: "Lost person needs help", priority: "medium" },
 ];
 
 const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
@@ -75,6 +27,43 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [additionalInfo, setAdditionalInfo] = useState("");
   const [loading, setLoading] = useState(false);
+  const [hasLocationPermission, setHasLocationPermission] = useState<boolean | null>(null);
+
+  // 🌍 Auto promptinmg for location access on mount
+  useEffect(() => {
+    if (!("geolocation" in navigator)) {
+      toast.error("Your browser does not support location access");
+      return;
+    }
+
+    const checkPermission = async () => {
+      try {
+        const permission = await navigator.permissions?.query({ name: "geolocation" as PermissionName });
+        if (!permission) return;
+
+        if (permission.state === "granted") {
+          setHasLocationPermission(true);
+        } else if (permission.state === "prompt") {
+          
+          navigator.geolocation.getCurrentPosition(
+            () => setHasLocationPermission(true),
+            () => setHasLocationPermission(false)
+          );
+        } else if (permission.state === "denied") {
+          setHasLocationPermission(false);
+          toast.error("Location access is blocked. Enable it in your browser settings.");
+        }
+
+        permission.onchange = () => {
+          setHasLocationPermission(permission.state === "granted");
+        };
+      } catch (err) {
+        console.warn("Permissions API not fully supported:", err);
+      }
+    };
+
+    checkPermission();
+  }, []);
 
   const handleTypeSelect = (typeId: string) => {
     setSelectedType(typeId);
@@ -124,14 +113,14 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
           }, 2000);
         },
         (error) => {
-          toast.error("Please enable location access");
           console.error("Location error:", error);
+          toast.error("Please enable location access to send your alert");
           setLoading(false);
         }
       );
     } catch (error) {
-      toast.error("Something went wrong");
       console.error("Error:", error);
+      toast.error("Something went wrong");
       setLoading(false);
     }
   };
@@ -140,7 +129,7 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* tha emergency Call Button */}
+
       <div className="fixed top-4 right-4 z-50">
         <Button
           size="lg"
@@ -164,6 +153,7 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
               Back
             </Button>
           )}
+
 
           {step === 1 && (
             <div>
@@ -189,12 +179,8 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
                   >
                     <div className="text-center">
                       <div className="text-5xl mb-3">{emergency.icon}</div>
-                      <h3 className="font-bold text-foreground text-lg mb-2">
-                        {emergency.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        {emergency.description}
-                      </p>
+                      <h3 className="font-bold text-foreground text-lg mb-2">{emergency.title}</h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed">{emergency.description}</p>
                       {emergency.priority === "critical" && (
                         <div className="mt-3 inline-flex items-center text-xs font-semibold text-destructive bg-destructive/10 px-3 py-1 rounded-full">
                           Critical
@@ -218,12 +204,8 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
               <Card className="p-8 rounded-2xl shadow-xl">
                 <div className="text-center mb-6">
                   <div className="text-6xl mb-4">{selectedEmergency.icon}</div>
-                  <h2 className="text-3xl font-bold text-foreground mb-2">
-                    {selectedEmergency.title}
-                  </h2>
-                  <p className="text-muted-foreground">
-                    {selectedEmergency.description}
-                  </p>
+                  <h2 className="text-3xl font-bold text-foreground mb-2">{selectedEmergency.title}</h2>
+                  <p className="text-muted-foreground">{selectedEmergency.description}</p>
                 </div>
 
                 <div className="space-y-6">
@@ -231,23 +213,19 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
                     <div className="flex items-start gap-3">
                       <MapPin className="w-5 h-5 text-primary flex-shrink-0 mt-1" />
                       <div>
-                        <h4 className="font-semibold text-foreground mb-1">
-                          Your Location
-                        </h4>
+                        <h4 className="font-semibold text-foreground mb-1">Your Location</h4>
                         <p className="text-sm text-muted-foreground">
-                          Will be shared with nearby responders
+                          {hasLocationPermission === false
+                            ? "Location access not enabled"
+                            : "Will be shared with nearby responders"}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <Clock className="w-5 h-5 text-secondary flex-shrink-0 mt-1" />
                       <div>
-                        <h4 className="font-semibold text-foreground mb-1">
-                          Estimated Response
-                        </h4>
-                        <p className="text-sm text-muted-foreground">
-                          Notifying verified responders nearby
-                        </p>
+                        <h4 className="font-semibold text-foreground mb-1">Estimated Response</h4>
+                        <p className="text-sm text-muted-foreground">Notifying verified responders nearby</p>
                       </div>
                     </div>
                   </div>
@@ -306,15 +284,14 @@ const SOSFlow = ({ onBack, onComplete }: SOSFlowProps) => {
             </div>
           )}
 
+ 
           {step === 3 && (
             <div className="max-w-2xl mx-auto">
               <Card className="p-8 rounded-2xl shadow-xl text-center">
                 <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse">
                   <Shield className="w-12 h-12 text-success" />
                 </div>
-                <h2 className="text-3xl font-bold text-foreground mb-4">
-                  Alert Sent Successfully
-                </h2>
+                <h2 className="text-3xl font-bold text-foreground mb-4">Alert Sent Successfully</h2>
                 <p className="text-lg text-muted-foreground mb-8">
                   Nearby responders have been notified. Help is on the way.
                 </p>
